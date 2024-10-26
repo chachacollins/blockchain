@@ -30,7 +30,7 @@ fn on_request(r: zap.Request) void {
             defer parsed.deinit();
             const message = parsed.value;
             const newBlock = block.generateBlock(block.BlockChain.getLast(), message.Coin) catch return;
-            if (block.isBlockValid(block.BlockChain.getLast(), newBlock)) {
+            if (block.isBlockValid(block.BlockChain.getLast(), newBlock) catch return) {
                 block.BlockChain.append(newBlock) catch return;
                 block.replaceChain(block.BlockChain);
             }
