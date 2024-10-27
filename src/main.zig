@@ -80,7 +80,6 @@ pub fn main() !void {
 
     std.debug.print("Listening on 0.0.0.0:6969\n", .{});
 
-    // start worker threads
     zap.start(.{
         .threads = 2,
         .workers = 2,
