@@ -29,6 +29,9 @@ fn on_request(r: zap.Request) void {
             const parsed = std.json.parseFromSlice(block.Message, allocator, r.body.?, .{}) catch return;
             defer parsed.deinit();
             const message = parsed.value;
+            var m = std.Thread.Mutex{};
+            m.lock();
+            defer m.unlock();
             const newBlock = block.generateBlock(block.BlockChain.getLast(), message.Coin) catch return;
             if (block.isBlockValid(block.BlockChain.getLast(), newBlock) catch return) {
                 block.BlockChain.append(newBlock) catch return;
@@ -54,15 +57,19 @@ fn on_request(r: zap.Request) void {
 pub fn main() !void {
     const emptyHash: [32]u8 = [_]u8{0} ** 32;
     const time = std.time.timestamp();
-    const genesisBlock = block.Block{
+    var genesisBlock = block.Block{
         //please zls formatter don't be stupid
         .Index = 0,
         .Coin = 0,
         .TimeStamp = time,
-        .Hash = emptyHash,
+        .Hash = undefined,
         .PrevHash = emptyHash,
     };
+    genesisBlock.Hash = try block.calculateHash(genesisBlock);
+    var m = std.Thread.Mutex{};
+    m.lock();
     try block.BlockChain.append(genesisBlock);
+    m.unlock();
 
     var listener = zap.HttpListener.init(.{
         .port = 6969,

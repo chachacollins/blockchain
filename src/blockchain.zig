@@ -20,7 +20,7 @@ pub fn numToString(n: isize) ![]const u8 {
     const str = try std.fmt.bufPrint(&buf, "{}", .{n});
     return str;
 }
-fn calculateHash(block: Block) ![32]u8 {
+pub fn calculateHash(block: Block) ![32]u8 {
     var record: [512]u8 = undefined;
     var stream = std.io.fixedBufferStream(&record);
     var writer = stream.writer();
