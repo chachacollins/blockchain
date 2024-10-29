@@ -39,6 +39,8 @@ pub fn calculateHash(block: Block) ![32]u8 {
     hash.sha2.Sha256.hash(record[0..], &digest, hash.sha2.Sha256.Options{});
     return digest;
 }
+//I don't know how to implement channels in zig so this will do;
+var channelHash: [32]u8 = undefined;
 
 pub fn isHashValid(
     Hash: [32]u8,
@@ -50,12 +52,6 @@ pub fn isHashValid(
     return false;
 }
 
-pub fn timestampToBytes(timestamp: i64) ![256]u8 {
-    var buffer: [256]u8 = undefined;
-    _ = try std.fmt.bufPrint(&buffer, "{}", .{timestamp});
-    return buffer;
-}
-
 pub fn generateBlock(oldBlock: Block, Coin: i32) !Block {
     const time = std.time.timestamp();
     var newBlock: Block = Block{
@@ -65,20 +61,16 @@ pub fn generateBlock(oldBlock: Block, Coin: i32) !Block {
         .Coin = Coin,
         .Hash = undefined,
         .difficulty = difficulty,
-        .Nonce = undefined,
+        .Nonce = 0,
     };
-    const sleep_duration = std.time.ns_per_ms * 2000;
-    var i: isize = 0;
-    while (true) : (i += 1) {
-        newBlock.Nonce = i;
-        newBlock.Hash = try calculateHash(newBlock);
-        if (!isHashValid(newBlock.Hash)) {
-            std.debug.print("Do more work {s}\n", .{newBlock.Hash});
-            std.time.sleep(sleep_duration);
-            continue;
-        } else {
-            newBlock.Hash = try calculateHash(newBlock);
+    while (true) {
+        const potentialHash = try calculateHash(newBlock);
+        if (isHashValid(potentialHash)) {
+            newBlock.Hash = potentialHash;
+            channelHash = potentialHash;
+            break;
         }
+        newBlock.Nonce += 1;
     }
     return newBlock;
 }
@@ -90,8 +82,7 @@ pub fn isBlockValid(oldBlock: Block, newBlock: Block) !bool {
     if (!std.mem.eql(u8, oldBlock.Hash[0..], newBlock.PrevHash[0..])) {
         return false;
     }
-    const newHash = try calculateHash(newBlock);
-    if (!std.mem.eql(u8, newHash[0..], newBlock.Hash[0..])) {
+    if (!std.mem.eql(u8, &channelHash, &newBlock.Hash)) {
         return false;
     }
     return true;

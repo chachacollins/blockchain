@@ -18,7 +18,6 @@ fn on_request(r: zap.Request) void {
             }
             std.debug.print("<< json: {s}\n", .{json_to_send});
             r.setContentType(.JSON) catch return;
-            r.setContentTypeFromFilename("test.json") catch return;
             r.sendBody(json_to_send) catch return;
         }
     }
@@ -33,8 +32,11 @@ fn on_request(r: zap.Request) void {
             defer m.unlock();
             const newBlock = block.generateBlock(block.BlockChain.getLast(), message.Coin) catch return;
             if (block.isBlockValid(block.BlockChain.getLast(), newBlock) catch return) {
+                std.debug.print("I reached here\n", .{});
                 block.BlockChain.append(newBlock) catch return;
                 block.replaceChain(block.BlockChain);
+            } else {
+                std.debug.print("Damn bitch you live like this \n", .{});
             }
             const blockchain = block.BlockChain.items;
             std.debug.print("<< blockchain: {d}\n", .{blockchain.len});
