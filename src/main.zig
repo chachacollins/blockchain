@@ -40,7 +40,7 @@ fn on_request(r: zap.Request) void {
             }
             const blockchain = block.BlockChain.items;
             std.debug.print("<< blockchain: {d}\n", .{blockchain.len});
-            var buffer: [10240000]u8 = undefined;
+            var buffer: [10240]u8 = undefined;
             var json_to_send: []const u8 = undefined;
             if (zap.stringifyBuf(&buffer, blockchain, .{})) |json| {
                 json_to_send = json;
@@ -71,8 +71,8 @@ pub fn main() !void {
     genesisBlock.Hash = try block.calculateHash(genesisBlock);
     var m = std.Thread.Mutex{};
     m.lock();
+    defer m.unlock();
     try block.BlockChain.append(genesisBlock);
-    m.unlock();
     const port: usize = 6969;
 
     var listener = zap.HttpListener.init(.{
@@ -85,7 +85,6 @@ pub fn main() !void {
     };
 
     std.debug.print("Listening on 0.0.0.0:6969\n", .{});
-
     zap.start(.{
         .threads = 2,
         .workers = 2,
