@@ -1,7 +1,9 @@
 const std = @import("std");
 const hash = std.crypto.hash;
+const testing = std.testing;
 var gpa = std.heap.GeneralPurposeAllocator(.{}){};
 const allocator = gpa.allocator();
+pub const difficulty: usize = 1;
 pub const Block = struct {
     //please zls
     Index: i32,
@@ -9,6 +11,8 @@ pub const Block = struct {
     Hash: [32]u8,
     PrevHash: [32]u8,
     TimeStamp: i64,
+    difficulty: usize,
+    Nonce: isize,
 };
 
 pub const Message = struct { Coin: i32 };
@@ -29,10 +33,21 @@ pub fn calculateHash(block: Block) ![32]u8 {
     try writer.writeAll(try numToString(block.Index));
     try writer.writeAll(try numToString(block.TimeStamp));
     try writer.writeAll(block.PrevHash[0..]);
+    try writer.writeAll(try numToString(block.Nonce));
 
     var digest: [32]u8 = undefined;
     hash.sha2.Sha256.hash(record[0..], &digest, hash.sha2.Sha256.Options{});
     return digest;
+}
+
+pub fn isHashValid(
+    Hash: [32]u8,
+) bool {
+    var prefix: [difficulty]u8 = [_]u8{0x0} ** difficulty;
+    if (std.mem.eql(u8, Hash[0..difficulty], prefix[0..difficulty])) {
+        return true;
+    }
+    return false;
 }
 
 pub fn timestampToBytes(timestamp: i64) ![256]u8 {
@@ -49,8 +64,22 @@ pub fn generateBlock(oldBlock: Block, Coin: i32) !Block {
         .PrevHash = oldBlock.Hash,
         .Coin = Coin,
         .Hash = undefined,
+        .difficulty = difficulty,
+        .Nonce = undefined,
     };
-    newBlock.Hash = try calculateHash(newBlock);
+    const sleep_duration = std.time.ns_per_ms * 2000;
+    var i: isize = 0;
+    while (true) : (i += 1) {
+        newBlock.Nonce = i;
+        newBlock.Hash = try calculateHash(newBlock);
+        if (!isHashValid(newBlock.Hash)) {
+            std.debug.print("Do more work {s}\n", .{newBlock.Hash});
+            std.time.sleep(sleep_duration);
+            continue;
+        } else {
+            newBlock.Hash = try calculateHash(newBlock);
+        }
+    }
     return newBlock;
 }
 
@@ -72,4 +101,10 @@ pub fn replaceChain(newBlocks: std.ArrayList(Block)) void {
     if (newBlocks.items.len > BlockChain.items.len) {
         BlockChain = newBlocks;
     }
+}
+
+test "isHashValid" {
+    const testHash: [32]u8 = [_]u8{0} ** 32;
+    const isHash = isHashValid(testHash);
+    try testing.expectEqual(isHash, true);
 }

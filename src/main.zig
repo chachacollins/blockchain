@@ -9,7 +9,6 @@ fn on_request(r: zap.Request) void {
         if (r.path) |the_path| {
             std.debug.print("PATH: {s}\n", .{the_path});
             const blockchain = block.BlockChain.items;
-            defer block.BlockChain.deinit();
             var buffer: [10240]u8 = undefined;
             var json_to_send: []const u8 = undefined;
             if (zap.stringifyBuf(&buffer, blockchain, .{})) |json| {
@@ -64,19 +63,24 @@ pub fn main() !void {
         .TimeStamp = time,
         .Hash = undefined,
         .PrevHash = emptyHash,
+        .Nonce = 0,
+        .difficulty = block.difficulty,
     };
     genesisBlock.Hash = try block.calculateHash(genesisBlock);
     var m = std.Thread.Mutex{};
     m.lock();
     try block.BlockChain.append(genesisBlock);
     m.unlock();
+    const port: usize = 6969;
 
     var listener = zap.HttpListener.init(.{
-        .port = 6969,
+        .port = port,
         .on_request = on_request,
         .log = true,
     });
-    try listener.listen();
+    listener.listen() catch |err| {
+        std.debug.panic("Failed due to {}\n", .{err});
+    };
 
     std.debug.print("Listening on 0.0.0.0:6969\n", .{});
 
