@@ -36,7 +36,7 @@ fn on_request(r: zap.Request) void {
                 block.BlockChain.append(newBlock) catch return;
                 block.replaceChain(block.BlockChain);
             } else {
-                std.debug.print("Damn bitch you live like this \n", .{});
+                std.debug.print("I also reached here\n", .{});
             }
             const blockchain = block.BlockChain.items;
             std.debug.print("<< blockchain: {d}\n", .{blockchain.len});
